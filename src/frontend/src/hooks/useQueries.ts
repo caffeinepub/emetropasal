@@ -96,9 +96,15 @@ export function usePlaceOrder() {
       name: string;
       address: string;
       phone: string;
+      cartItems: Array<[bigint, bigint]>;
     }) => {
       if (!actor) throw new Error("Not connected");
-      return actor.placeOrder(params.name, params.address, params.phone);
+      return actor.placeOrder(
+        params.name,
+        params.address,
+        params.phone,
+        params.cartItems,
+      );
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["orders"] }),
   });

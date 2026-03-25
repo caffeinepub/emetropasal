@@ -30,8 +30,21 @@ export default function CartSidebar({
       toast.error("Please fill all fields");
       return;
     }
+    if (items.length === 0) {
+      toast.error("Your cart is empty");
+      return;
+    }
     try {
-      const orderId = await placeOrder.mutateAsync(form);
+      const cartItems: Array<[bigint, bigint]> = items.map((item) => [
+        item.product.id,
+        BigInt(item.quantity),
+      ]);
+      const orderId = await placeOrder.mutateAsync({
+        name: form.name,
+        address: form.address,
+        phone: form.phone,
+        cartItems,
+      });
       clearCart();
       onClose();
       onOrderPlaced(orderId.toString());

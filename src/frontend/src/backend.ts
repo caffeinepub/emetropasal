@@ -150,7 +150,7 @@ export interface backendInterface {
     getProducts(): Promise<Array<Product>>;
     getProductsByCategory(category: string): Promise<Array<Product>>;
     isCallerAdmin(): Promise<boolean>;
-    placeOrder(customerName: string, customerAddress: string, customerPhone: string): Promise<bigint>;
+    placeOrder(customerName: string, customerAddress: string, customerPhone: string, cartItems: Array<[bigint, bigint]>): Promise<bigint>;
     removeFromCart(productId: bigint): Promise<void>;
     updateDeliveryLocation(orderId: bigint, driverLat: number, driverLng: number, estimatedMinutes: bigint): Promise<void>;
     updateOrderStatus(id: bigint, status: OrderStatus): Promise<void>;
@@ -411,17 +411,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async placeOrder(arg0: string, arg1: string, arg2: string): Promise<bigint> {
+    async placeOrder(arg0: string, arg1: string, arg2: string, arg3: Array<[bigint, bigint]>): Promise<bigint> {
         if (this.processError) {
             try {
-                const result = await this.actor.placeOrder(arg0, arg1, arg2);
+                const result = await this.actor.placeOrder(arg0, arg1, arg2, arg3);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.placeOrder(arg0, arg1, arg2);
+            const result = await this.actor.placeOrder(arg0, arg1, arg2, arg3);
             return result;
         }
     }

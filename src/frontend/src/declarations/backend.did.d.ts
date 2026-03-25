@@ -64,7 +64,7 @@ export interface _SERVICE {
   'getProducts' : ActorMethod<[], Array<Product>>,
   'getProductsByCategory' : ActorMethod<[string], Array<Product>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
-  'placeOrder' : ActorMethod<[string, string, string], bigint>,
+  'placeOrder' : ActorMethod<[string, string, string, Array<[bigint, bigint]>], bigint>,
   'removeFromCart' : ActorMethod<[bigint], undefined>,
   'updateDeliveryLocation' : ActorMethod<
     [bigint, number, number, bigint],

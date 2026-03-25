@@ -81,7 +81,8 @@ actor {
 
   let deliveryTracking = Map.empty<Nat, DeliveryTracking>();
 
-  let carts = Map.empty<Principal, [(Nat, Nat)]>(); // (productId, quantity)
+  // Kept for migration compatibility (cart is now managed on the frontend)
+  let carts = Map.empty<Principal, [(Nat, Nat)]>();
 
   // Product Management
   public query ({ caller }) func getProducts() : async [Product] {
@@ -156,81 +157,18 @@ actor {
     categories.remove(category);
   };
 
-  // Cart Management
-  public shared ({ caller }) func addToCart(productId : Nat, quantity : Nat) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #guest))) {
-      Runtime.trap("Unauthorized: Only users can add to cart");
-    };
-    if (quantity == 0) { Runtime.trap("Quantity must be greater than 0") };
-
-    let currentCart = switch (carts.get(caller)) {
-      case (null) { [] };
-      case (?cart) { cart };
-    };
-
-    // Check if product exists
-    if (not products.containsKey(productId)) { Runtime.trap("Product does not exist") };
-
-    // Update quantity if already in cart
-    var found = false;
-    let updatedCart = currentCart.map(
-      func(item) {
-        if (item.0 == productId) {
-          found := true;
-          (item.0, item.1 + quantity);
-        } else {
-          item;
-        };
-      }
-    );
-
-    let finalCart = if (found) {
-      updatedCart;
-    } else {
-      updatedCart.concat([(productId, quantity)]);
-    };
-
-    carts.add(caller, finalCart);
-  };
-
-  public shared ({ caller }) func removeFromCart(productId : Nat) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #guest))) {
-      Runtime.trap("Unauthorized: Only users can remove from cart");
-    };
-    let currentCart = switch (carts.get(caller)) {
-      case (null) { Runtime.trap("Cart is empty") };
-      case (?cart) { cart };
-    };
-    let updatedCart = currentCart.filter(
-      func(item) { item.0 != productId }
-    );
-    carts.add(caller, updatedCart);
-  };
-
-  public query ({ caller }) func getCart() : async [(Nat, Nat)] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #guest))) {
-      Runtime.trap("Unauthorized: Only users can view cart");
-    };
-    switch (carts.get(caller)) {
-      case (null) { [] };
-      case (?cart) { cart };
-    };
-  };
-
-  // Order Placement
-  public shared ({ caller }) func placeOrder(customerName : Text, customerAddress : Text, customerPhone : Text) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #guest))) {
-      Runtime.trap("Unauthorized: Only users can place orders");
-    };
-    let cart = switch (carts.get(caller)) {
-      case (null) { Runtime.trap("Cart is empty") };
-      case (?cart) { cart };
-    };
-    if (cart.size() == 0) { Runtime.trap("Cart is empty") };
+  // Order Placement — items passed directly from frontend (cart is frontend-managed)
+  public shared ({ caller }) func placeOrder(
+    customerName : Text,
+    customerAddress : Text,
+    customerPhone : Text,
+    cartItems : [(Nat, Nat)], // (productId, quantity)
+  ) : async Nat {
+    if (cartItems.size() == 0) { Runtime.trap("Cart is empty") };
 
     var totalAmount : Float = 0;
 
-    for (item in cart.values()) {
+    for (item in cartItems.values()) {
       switch (products.get(item.0)) {
         case (null) { Runtime.trap("Product does not exist") };
         case (?product) {
@@ -243,7 +181,7 @@ actor {
     let order : Order = {
       id = nextOrderId;
       customerId = caller;
-      items = cart.map(
+      items = cartItems.map(
         func(item) { { productId = item.0; quantity = item.1 } }
       );
       status = #pending;
@@ -251,12 +189,11 @@ actor {
       customerName;
       customerAddress;
       customerPhone;
-      createdAt = 0; // Should be updated with current timestamp
+      createdAt = 0;
     };
 
     orders.add(nextOrderId, order);
     nextOrderId += 1;
-    carts.remove(caller);
     order.id;
   };
 
@@ -317,7 +254,7 @@ actor {
       driverLat;
       driverLng;
       estimatedMinutes;
-      lastUpdated = 0; // Should be updated with current timestamp
+      lastUpdated = 0;
     };
     deliveryTracking.add(orderId, tracking);
   };
@@ -326,7 +263,6 @@ actor {
     switch (deliveryTracking.get(orderId)) {
       case (null) { Runtime.trap("Tracking not found") };
       case (?tracking) {
-        // Verify caller owns the order or is admin
         switch (orders.get(orderId)) {
           case (null) { Runtime.trap("Order does not exist") };
           case (?order) {

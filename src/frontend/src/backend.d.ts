@@ -52,12 +52,10 @@ export enum UserRole {
 export interface backendInterface {
     addCategory(category: string): Promise<void>;
     addProduct(product: Product): Promise<bigint>;
-    addToCart(productId: bigint, quantity: bigint): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     deleteCategory(category: string): Promise<void>;
     deleteProduct(id: bigint): Promise<void>;
     getCallerUserRole(): Promise<UserRole>;
-    getCart(): Promise<Array<[bigint, bigint]>>;
     getCategories(): Promise<Array<string>>;
     getDeliveryTracking(orderId: bigint): Promise<DeliveryTracking>;
     getMyOrders(): Promise<Array<Order>>;
@@ -67,8 +65,7 @@ export interface backendInterface {
     getProducts(): Promise<Array<Product>>;
     getProductsByCategory(category: string): Promise<Array<Product>>;
     isCallerAdmin(): Promise<boolean>;
-    placeOrder(customerName: string, customerAddress: string, customerPhone: string): Promise<bigint>;
-    removeFromCart(productId: bigint): Promise<void>;
+    placeOrder(customerName: string, customerAddress: string, customerPhone: string, cartItems: Array<[bigint, bigint]>): Promise<bigint>;
     updateDeliveryLocation(orderId: bigint, driverLat: number, driverLng: number, estimatedMinutes: bigint): Promise<void>;
     updateOrderStatus(id: bigint, status: OrderStatus): Promise<void>;
     updateProduct(id: bigint, product: Product): Promise<void>;
